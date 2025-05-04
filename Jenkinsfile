@@ -41,7 +41,8 @@ pipeline {
                                     ls -l
                                     docker login -u ${DOCKER_USERNAME} -p ${DOCKER_PASSWORD} docker.io
                                     docker pull docker.io/bunyakorngoko/prac-jenkins:${env.BUILD_NUMBER}
-                                    docker rm -f jenkins-1
+                                    docker rm -f jenkins-1 || true
+                                    docker rmi -f docker.io/bunyakorngoko/prac-jenkins:latest || true
                                     docker run -dp 7001:80 --name jenkins-1 docker.io/bunyakorngoko/prac-jenkins:${env.BUILD_NUMBER}
                                 '
                             """
