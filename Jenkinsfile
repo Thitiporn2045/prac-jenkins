@@ -48,6 +48,7 @@ pipeline {
                                     fi
                                     docker pull docker.io/bunyakorngoko/prac-jenkins:${env.BUILD_NUMBER}
                                     docker run -dp 7001:80 --name jenkins-1 docker.io/bunyakorngoko/prac-jenkins:${env.BUILD_NUMBER}
+                                    docker image prune -a
                                 '
                             """
                         }
