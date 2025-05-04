@@ -40,8 +40,7 @@ pipeline {
                                 ssh -o StrictHostKeyChecking=no ubuntu@10.11.0.211 '
                                     ls -l
                                     docker login -u ${DOCKER_USERNAME} -p ${DOCKER_PASSWORD} docker.io
-                                    if [ $(docker ps -q -f name=jenkins-1) ]; then
-                                        echo "Container exists. Stopping and removing..."
+                                    if [ \$(docker ps -q -f name=jenkins-1) ]; then
                                         docker stop jenkins-1
                                         docker rm jenkins-1
                                     else
