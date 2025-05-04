@@ -40,9 +40,14 @@ pipeline {
                                 ssh -o StrictHostKeyChecking=no ubuntu@10.11.0.211 '
                                     ls -l
                                     docker login -u ${DOCKER_USERNAME} -p ${DOCKER_PASSWORD} docker.io
+                                    if [ $(docker ps -q -f name=jenkins-1) ]; then
+                                        echo "Container exists. Stopping and removing..."
+                                        docker stop jenkins-1
+                                        docker rm jenkins-1
+                                    else
+                                        echo "Container does not exist. Skipping stop and remove..."
+                                    fi
                                     docker pull docker.io/bunyakorngoko/prac-jenkins:${env.BUILD_NUMBER}
-                                    docker rm -f jenkins-1 || true
-                                    docker rmi -f docker.io/bunyakorngoko/prac-jenkins:latest || true
                                     docker run -dp 7001:80 --name jenkins-1 docker.io/bunyakorngoko/prac-jenkins:${env.BUILD_NUMBER}
                                 '
                             """
