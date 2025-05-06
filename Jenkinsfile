@@ -1,32 +1,28 @@
 pipeline {
     agent any
     stages {
-        stage('list file') {
-            steps { 
-                sh 'ls -l'
-                sh 'ls -l'
-            }
-        }
         stage('Build Docker Image') {
             steps {
                 // สร้าง Docker image
                 sh """
                     docker build --rm \
                     -f Dockerfile \
-                    -t docker.io/bunyakorngoko/prac-jenkins:latest \
-                    -t docker.io/bunyakorngoko/prac-jenkins:${env.BUILD_NUMBER} \
+                    -t docker.io/thitiporn2045/jenkins-oddscloud \
+                    -t docker.io/thitiporn2045/jenkins-oddscloud:${env.BUILD_NUMBER} \
                     .
                 """
             }
         }
         stage('Push') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'DOCKER_CREDENTIALS', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+                withCredentials([usernamePassword(credentialsId: 'DOCKER_CREDENTIALS_GIFT', passwordVariable: 'DOCKER_PASSWORD', usernameVariable: 'DOCKER_USERNAME')]) {
                     sh """
-                        echo \$DOCKER_USERNAME
-                        echo \$DOCKER_PASSWORD | sed 's/./*/g'
-                        docker login -u \$DOCKER_USERNAME -p \$DOCKER_PASSWORD docker.io
-                        docker push docker.io/bunyakorngoko/prac-jenkins:${env.BUILD_NUMBER}
+                        echo $DOCKER_USERNAME
+                        # เข้าสู่ Docker registry
+                        docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD docker.io
+                        
+                        # Push Docker image ไปที่ DockerHub
+                        docker push docker.io/thitiporn2045/jenkins-oddscloud:${env.BUILD_NUMBER}
                     """
                 }
             }
@@ -34,22 +30,19 @@ pipeline {
         stage('Deploy to server') {
             steps {
                 script {
-                    sshagent (credentials: ["SSH_KEY_DEV_SERVER"]){
-                        withCredentials([usernamePassword(credentialsId: 'DOCKER_CREDENTIALS', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+                    sshagent(credentials: ["SSH_KEY_DEV_SERVER_GIFT"]) {
+                        withCredentials([usernamePassword(credentialsId: 'DOCKER_CREDENTIALS_GIFT', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
                             sh """
-                                ssh -o StrictHostKeyChecking=no ubuntu@10.11.0.211 '
-                                    ls -l
-                                    docker login -u ${DOCKER_USERNAME} -p ${DOCKER_PASSWORD} docker.io
-                                    if [ \$(docker ps -q -a -f name=jenkins-1) ]; then
-                                        docker stop jenkins-1
-                                        docker rm jenkins-1
-                                    else
-                                        echo "Container does not exist. Skipping stop and remove..."
-                                    fi
-                                    docker pull docker.io/bunyakorngoko/prac-jenkins:${env.BUILD_NUMBER}
-                                    docker run -dp 7001:80 --name jenkins-1 docker.io/bunyakorngoko/prac-jenkins:${env.BUILD_NUMBER}
-                                    docker image prune -a
-                                '
+                                # Login to Docker registry บน server
+                                ssh -o StrictHostKeyChecking=no -l ubuntu 10.11.0.211 \"
+                                    docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD registry-1.docker.io
+                                    
+                                    # Pull Docker image ที่อัพโหลดจาก Jenkins
+                                    docker pull registry-1.docker.io/thitiporn2045/jenkins-oddscloud:${env.BUILD_NUMBER}
+                                    
+                                    # Run Docker container บน server
+                                    docker run -dp 7002:80 registry-1.docker.io/thitiporn2045/jenkins-oddscloud:${env.BUILD_NUMBER}
+                                \"
                             """
                         }
                     }
